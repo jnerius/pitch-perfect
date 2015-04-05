@@ -10,10 +10,10 @@ import UIKit
 import AVFoundation
 
 class PlaySoundsViewController: UIViewController, AVAudioPlayerDelegate {
-    var audioPlayer:AVAudioPlayer!
-    var receivedAudio:RecordedAudio!
-    var audioEngine:AVAudioEngine!
-    var audioFile:AVAudioFile!
+    var audioPlayer: AVAudioPlayer!
+    var receivedAudio: RecordedAudio!
+    var audioEngine: AVAudioEngine!
+    var audioFile: AVAudioFile!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -26,19 +26,17 @@ class PlaySoundsViewController: UIViewController, AVAudioPlayerDelegate {
         audioEngine = AVAudioEngine()
         audioFile = AVAudioFile(forReading: receivedAudio.filePathUrl, error: nil)
     }
-
+    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
     }
     
     @IBAction func playFast(sender: UIButton) {
-        audioPlayer.rate = 2.0
-        play()
+        playAtSpecifiedRate(2.0)
     }
     
     @IBAction func playSlow(sender: UIButton) {
-        audioPlayer.rate = 0.5
-        play()
+        playAtSpecifiedRate(0.5)
     }
     
     @IBAction func playChipmunkAudio(sender: UIButton) {
@@ -62,19 +60,16 @@ class PlaySoundsViewController: UIViewController, AVAudioPlayerDelegate {
         stopAndResetAll()
     }
     
-    // Play the recorded sound with an audio distortion preset
-    func playAudioWithDistortion(preset: AVAudioUnitDistortionPreset) {
+    // Play audio with specified effect
+    func playAudioWithEffect(effect: AVAudioUnit) {
         stopAndResetAll()
         
         var audioPlayerNode = AVAudioPlayerNode()
         audioEngine.attachNode(audioPlayerNode)
+        audioEngine.attachNode(effect)
         
-        var audioUnitDistortion = AVAudioUnitDistortion()
-        audioUnitDistortion.loadFactoryPreset(preset)
-        
-        audioEngine.attachNode(audioUnitDistortion)
-        audioEngine.connect(audioPlayerNode, to: audioUnitDistortion, format: nil)
-        audioEngine.connect(audioUnitDistortion, to: audioEngine.outputNode, format: nil)
+        audioEngine.connect(audioPlayerNode, to: effect, format: nil)
+        audioEngine.connect(effect, to: audioEngine.outputNode, format: nil)
         
         audioPlayerNode.scheduleFile(audioFile, atTime: nil, completionHandler: nil)
         audioEngine.startAndReturnError(nil)
@@ -82,62 +77,45 @@ class PlaySoundsViewController: UIViewController, AVAudioPlayerDelegate {
         audioPlayerNode.play()
     }
     
-    // Play the recorded audio with a reverb preset and wet/dry mix
+    // Play the recorded sound with an audio distortion preset
+    func playAudioWithDistortion(preset: AVAudioUnitDistortionPreset) {
+        var audioUnitDistortion = AVAudioUnitDistortion()
+        audioUnitDistortion.loadFactoryPreset(preset)
+        
+        playAudioWithEffect(audioUnitDistortion)
+    }
+    
+    // Play the recorded audio with a reverb preset and wet/dry mix. Takes two
+    // params: preset and wetDryMix. This will let us easily configure the app
+    // to user other reverb variants in the future.
     func playAudioWithReverb(preset: AVAudioUnitReverbPreset, wetDryMix: Float) {
-        stopAndResetAll()
-        
-        var audioPlayerNode = AVAudioPlayerNode()
-        audioEngine.attachNode(audioPlayerNode)
-        
         var audioUnitReverb = AVAudioUnitReverb()
         audioUnitReverb.loadFactoryPreset(preset)
         audioUnitReverb.wetDryMix = wetDryMix
         
-        audioEngine.attachNode(audioUnitReverb)
-        audioEngine.connect(audioPlayerNode, to: audioUnitReverb, format: nil)
-        audioEngine.connect(audioUnitReverb, to: audioEngine.outputNode, format: nil)
-        
-        audioPlayerNode.scheduleFile(audioFile, atTime: nil, completionHandler: nil)
-        audioEngine.startAndReturnError(nil)
-        audioPlayerNode.play()
+        playAudioWithEffect(audioUnitReverb)
     }
     
     // Play the recorded sound with variable pitch
     func playAudioWithVariablePitch(pitch: Float) {
-        audioPlayer.stop()
-        audioEngine.stop()
-        audioEngine.reset()
-        
-        var audioPlayerNode = AVAudioPlayerNode()
-        audioEngine.attachNode(audioPlayerNode)
-        
         var changePitchEffect = AVAudioUnitTimePitch()
         changePitchEffect.pitch = pitch
-        audioEngine.attachNode(changePitchEffect)
         
-        audioEngine.connect(audioPlayerNode, to: changePitchEffect, format: nil)
-        audioEngine.connect(changePitchEffect, to: audioEngine.outputNode, format: nil)
-        
-        audioPlayerNode.scheduleFile(audioFile, atTime: nil, completionHandler: nil)
-        audioEngine.startAndReturnError(nil)
-        
-        
-        audioPlayerNode.play()
+        playAudioWithEffect(changePitchEffect)
     }
     
     // Use to stop and reset everything at once
     func stopAndResetAll() {
         audioPlayer.stop()
+        audioPlayer.currentTime = 0
+        
         audioEngine.stop()
         audioEngine.reset()
     }
     
-    func play() {
-        audioEngine.stop()
-        audioEngine.reset()
-        audioPlayer.stop()
-        
-        audioPlayer.currentTime = 0
+    func playAtSpecifiedRate(rate: Float) {
+        stopAndResetAll()
+        audioPlayer.rate = rate;
         audioPlayer.play()
     }
 }

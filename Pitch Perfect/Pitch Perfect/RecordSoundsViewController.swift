@@ -15,18 +15,18 @@ class RecordSoundsViewController: UIViewController, AVAudioRecorderDelegate {
     @IBOutlet weak var stopRecordingButton: UIButton!
     @IBOutlet weak var recordButton: UIButton!
     
-    var audioRecorder:AVAudioRecorder!
-    var recordedAudio:RecordedAudio!
+    var audioRecorder: AVAudioRecorder!
+    var recordedAudio: RecordedAudio!
     
-    var recordingInProgress:Bool!
-    var recordingPaused:Bool!
+    var recordingInProgress: Bool!
+    var recordingPaused: Bool!
     
     let statusMessagePaused      = "Recording Paused"
     let statusMessageInProgress  = "Recording in Progress..."
     let instructionMessageRecord = "Tap to Record"
     let instructionMessagePause  = "Tap to Pause"
     let instructionMessageResume = "Tap to Resume"
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
     }
@@ -45,16 +45,16 @@ class RecordSoundsViewController: UIViewController, AVAudioRecorderDelegate {
         recordingInProgress = false
         recordingPaused = false
     }
-
+    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
     }
-
+    
     @IBAction func recordAudio(sender: UIButton) {
-        // Check to see if we are already recording. If not, start. If we are, pause. 
-        
+        // Check to see if we are already recording. If not, start. If we are, pause.
         if (!recordingInProgress) {
             recordingInProgress = true
+            
             // Update the status label, hide the stop button and disable the record button
             statusLabel.text = statusMessageInProgress
             statusLabel.hidden = false
@@ -95,7 +95,7 @@ class RecordSoundsViewController: UIViewController, AVAudioRecorderDelegate {
                 statusLabel.text = statusMessageInProgress
                 recordingPaused = false
                 audioRecorder.record()
-            // If the recording is not paused, switch the labels and pause
+                // If the recording is not paused, switch the labels and pause
             } else {
                 instructionLabel.text = instructionMessageResume
                 statusLabel.text = statusMessagePaused
@@ -116,10 +116,14 @@ class RecordSoundsViewController: UIViewController, AVAudioRecorderDelegate {
     func audioRecorderDidFinishRecording(recorder: AVAudioRecorder!, successfully flag: Bool) {
         // If recording was successful, perform segue, passing the recordedAudio object to the next view
         if (flag) {
+            // For Reviewer: 
+            // 
+            // I received feedback from the previous reviewer that the following line caused an error with optionals. 
+            // The recommendation was to add a ! immediately after lastPathComponent. This causes the build to fail 
+            // for me. If this occurs again, specific steps to reproduce the error would be greatly appreciated!
             recordedAudio = RecordedAudio(filePathUrl: recorder.url, title: recorder.url.lastPathComponent)
             self.performSegueWithIdentifier("stopRecording", sender: recordedAudio)
         } else {
-            println("error")
             recordButton.enabled = true
             stopRecordingButton.hidden = true
         }
@@ -127,11 +131,10 @@ class RecordSoundsViewController: UIViewController, AVAudioRecorderDelegate {
     
     override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
         if (segue.identifier == "stopRecording") {
-            let playSoundsVC:PlaySoundsViewController = segue.destinationViewController as PlaySoundsViewController
+            let playSoundsVC: PlaySoundsViewController = segue.destinationViewController as PlaySoundsViewController
             
             let data = sender as RecordedAudio
             playSoundsVC.receivedAudio = data
         }
     }
 }
-
